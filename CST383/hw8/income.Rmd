@@ -1,0 +1,101 @@
+---
+title: "Income above or below 50k"
+author: "Mathew Lisec"
+date: "8/11/2019"
+output: html_document
+---
+
+<!-- change echo=FALSE to echo=TRUE to show code -->
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(prompt=TRUE, comment="", echo=TRUE)
+```
+
+### Goal
+
+The purpose of this report is to create a predicter to tell whether or not a person made more or less than 50k per year according to the 1994 census. I will be using the Naive Bayes classifier to make predictions.
+
+### Load Libraries
+
+The following code will load the libraries that will be used in order to create a Naive Bayes classifier.
+
+```{r collapse=TRUE, warning=FALSE}
+library(e1071)
+
+# the following utility files can be found attached to the assignment
+source("https://raw.githubusercontent.com/grbruns/cst383/master/lin-regr-util.R")
+source("https://raw.githubusercontent.com/grbruns/cst383/master/class-util.R")
+```
+
+### Reading and preprocessing the data
+
+First, we will preprocess the data. I preprocessed the data to represent a binary approach in order to visualize the data more easily. For race, the categories are "white" and "other," for education, the categories are "College Grad" and "Not College Grad," and for age, the categories are "Older than 35" or "Younger than 35."
+
+```{r}
+census = read.csv("https://raw.githubusercontent.com/grbruns/cst383/master/1994-census-summary.csv")
+census$label = factor(census$label, labels=c("<=50k", ">50k"))
+census$sex = factor(census$sex, labels=c("female", "male"))
+census$race = factor(ifelse(census$race == "White", "white", "other"))
+census$age = factor(ifelse(census$age >= 35, "Older than 35", "Younger than 35"))
+census$education = factor(ifelse(census$education == "Bachelors" | census$education == "Doctorate" | census$education == "Masters", "College Grad", "Not College Grad"))
+```
+
+
+### Data Exploration
+
+The following graphs represent some of the data found in the census table. I will be using this information to create a naive bayes classifier.
+```{r test}
+cols = c("red", "green")
+
+plot(census$age, census$label, col=cols, ylab = "below/above 50k", xlab = "age", main = "Income according to Age")
+legend("bottomright", c("% below 50k", "% above 50k"), cex = 0.7, fill = cols)
+
+plot(census$sex, census$label, col=cols, xlab = "sex", main = "% above/below 50k according to Sex")
+legend("bottomright", c("% below 50k", "% above 50k"), cex = 0.7, fill = cols)
+
+plot(census$race, census$label, col = cols, xlab = "race", main = "% above/below 50k according to Race")
+legend("bottomright", c("% below 50k", "% above 50k"), cex = 0.7, fill = cols)
+
+plot(census$education, census$label, col = cols,xlab = "education", main = "% above/below 50k according to Education")
+legend("bottomright", c("% below 50k", "% above 50k"), cex = 0.7, fill = cols)
+
+
+```
+
+
+### Creating Test and Training Data
+
+The following code creates test and training data. The training data is used to create the Naive Bayes classifier.
+
+```{r}
+# training and test sets
+set.seed(123)
+split = split_data(census)
+tr_dat = split[[1]]
+te_dat = split[[2]]
+
+```
+
+### Results
+
+Here, I have created predictors using the training data and applied it to the test data. I then created a confusion matrix to show the results. I also calculated the mean of the confusion matrix. The closer the mean value is to 1, the better it is. I ran the data through the predicter two times to see if I will get a better result. The results seem to have gotten better the second time by .04.
+
+```{r}
+#par(mfrow= c(1,2))
+fit = naiveBayes(label ~ sex + race + education + age, data=tr_dat)
+predicts = predict(fit, newdata=te_dat)
+actuals = te_dat$label
+conf_mtx = table(predicts, actuals)
+conf_mtx
+mean(predicts == actuals)
+
+fit = naiveBayes(label ~ ., data=tr_dat)
+predicts = predict(fit, te_dat)
+actuals = te_dat$label
+conf_mtx = table(predicts, actuals)
+conf_mtx
+mean(predicts == actuals)
+
+```
+### Conclusion
+
+Judging by the data exploration section, it would seem that education and age play a larger role in whether or not someone from the 1994 census was making more or less than 50k per year. Looking at the race and sex, this does not seem to be a factor for an individual. However, since a majority of the participants in the census were either white and/or male, this will still affect the outcome.
