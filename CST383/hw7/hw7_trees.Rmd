@@ -1,0 +1,110 @@
+---
+title: "Predicting heart disease with classification trees"
+author: "Marko Orescanin"
+date: "Nov 11, 2018"
+output: html_document
+---
+
+<!-- change echo=FALSE to echo=TRUE to show code -->
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(prompt=TRUE, comment="", echo=TRUE)
+```
+
+
+
+The following code will load the libraries that will be used in order to create a classification tree for heart disease.
+
+```{r collapse=TRUE, warning=FALSE}
+library(rpart)
+library(rpart.plot)
+library(maptree)
+# the following utility files can be found attached to the assignment
+source("https://raw.githubusercontent.com/grbruns/cst383/master/lin-regr-util.R")
+source("https://raw.githubusercontent.com/grbruns/cst383/master/class-util.R")
+```
+
+### Reading and preprocessing the data
+
+
+
+First, we will preprocess the data.
+
+```{r}
+heart = read.table("https://raw.githubusercontent.com/grbruns/cst383/master/heart.dat", quote = "/")
+names(heart) <- c("AGE", "SEX", "CHESTPAIN", "RESTBP", "CHOL",
+                  "SUGAR", "ECG", "MAXHR", "ANGINA", "DEP", "EXERCISE", "FLUOR",
+                  "THAL", "OUTPUT")
+names(heart) = tolower(names(heart))
+
+# convert output to factor
+heart$output = factor(heart$output)
+```
+
+### Data exploration
+
+
+
+Here are a couple of plots showing the relationship of cholestrol, restbp, maxhr, and age with heart disease.
+
+```{r test}
+par(mfrow= c(1,2))
+plot(heart$chol, heart$output, main = "Heart Disease over cholesterol level", ylab = "Heart Disease", xlab = "Cholesterol", col = "red")
+plot(heart$restbp, heart$output, main = "Heart Disease over RestBP", ylab = "heart disease", xlab = "restbp", col = "red")
+par(mfrow= c(1,2))
+plot(heart$maxhr, heart$output, main = "Heart Disease over MaxHR", ylab = "heart disease", xlab = "maxhr", col = "red")
+plot(heart$age, heart$output, main = "Heart Disease over Age", ylab = "heart disease", xlab = "age", col = "red")
+```
+
+### Building a classification tree
+
+
+
+The following code creates test and training data. The training data is used to create the classification tree. Inlcuded is a summary of the fit of the tree.
+
+```{r}
+# training and test sets
+set.seed(132)
+split = split_data(heart)
+tr_dat = split[[1]]
+te_dat = split[[2]]
+heart$output = factor(ifelse(heart$output == 1, "Negative", "Positive"))
+fit = rpart(output ~ maxhr + age, data = tr_dat, method = "class")
+summary(fit)
+prp(fit, extra=106, varlen=-10, main="classification tree for heart disease",
+box.col=c("palegreen", "pink")[fit$frame$yval])
+```
+
+### Classifying test data
+
+
+
+```{r}
+predicted = predict(fit, te_dat, type="class")
+predicted2 = predict(fit, tr_dat, type="class")
+```
+
+### Assessing the model
+
+
+
+Here is a confusion matrix to show the accuracy of the tree, and the average of how many of the predicted values were actually heart disease.
+
+```{r}
+actual = te_dat$output
+table(actual, predicted)
+mean(actual == predicted)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
